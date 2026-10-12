@@ -1,0 +1,6 @@
+# Ignore local Terraform state files
+*.tfstate
+*.tfstate.backup
+.terraform/
+config.bat
+node_modules
