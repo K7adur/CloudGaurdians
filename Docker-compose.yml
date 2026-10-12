@@ -1,0 +1,81 @@
+services:
+
+  region1:
+    build: ./region1/app
+    container_name: region1-primary
+    ports:
+      - "5001:5000"
+    environment:
+      DB_HOST: region1-db
+      DB_NAME: cloudguardians
+      DB_USER: clouduser
+      DB_PASSWORD: cloudpass
+    networks:
+      - region1-network
+    depends_on:
+      - region1-db
+
+  region1-db:
+    image: postgres:16
+    container_name: region1-db
+    environment:
+      POSTGRES_USER: clouduser
+      POSTGRES_PASSWORD: cloudpass
+      POSTGRES_DB: cloudguardians
+    volumes:
+      - region1-db-data:/var/lib/postgresql/data
+    networks:
+      - region1-network
+
+  region2:
+    build: ./region2/app
+    container_name: region2-secondary
+    ports:
+      - "5002:5000"
+    environment:
+      DB_HOST: region2-db
+      DB_NAME: cloudguardians
+      DB_USER: clouduser
+      DB_PASSWORD: cloudpass
+    networks:
+      - region2-network
+    depends_on:
+      - region2-db
+
+  region2-db:
+    image: postgres:16
+    container_name: region2-db
+    environment:
+      POSTGRES_USER: clouduser
+      POSTGRES_PASSWORD: cloudpass
+      POSTGRES_DB: cloudguardians
+    volumes:
+      - region2-db-data:/var/lib/postgresql/data
+    networks:
+      - region2-network
+
+  gateway:
+    build: ./router
+    container_name: cloudguardians-gateway
+    ports:
+      - "8080:5000"
+    networks:
+      - region1-network
+      - region2-network
+    depends_on:
+      - region1
+      - region2
+
+networks:
+
+  region1-network:
+    name: region1-network
+
+  region2-network:
+    name: region2-network
+
+volumes:
+
+  region1-db-data:
+
+  region2-db-data:
