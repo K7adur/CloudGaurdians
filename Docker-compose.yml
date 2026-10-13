@@ -24,6 +24,7 @@ services:
       POSTGRES_DB: cloudguardians
     volumes:
       - region1-db-data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     networks:
       - region1-network
 
@@ -51,6 +52,7 @@ services:
       POSTGRES_DB: cloudguardians
     volumes:
       - region2-db-data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     networks:
       - region2-network
 
