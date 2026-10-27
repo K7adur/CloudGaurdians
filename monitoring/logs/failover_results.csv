@@ -1,0 +1,2 @@
+timestamp,result,rto_seconds,active_region,details
+2026-10-12T21:50:41,PASS,23.094,secondary,Secondary returned HTTP 200 via gateway

@@ -1,0 +1,205 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CloudGuardians | Disaster Recovery Dashboard</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div class="app">
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-icon">◆</div>
+                <div>
+                    <h2>CloudGuardians</h2>
+                    <p>DISASTER RECOVERY PLATFORM</p>
+                </div>
+            </div>
+
+            <div class="nav-label">WORKSPACE</div>
+            <nav>
+                <button class="nav-item active" data-page="overview">◈ &nbsp; Overview</button>
+                <button class="nav-item" data-page="api">⌘ &nbsp; API Explorer</button>
+                <button class="nav-item" data-page="chaos">⚡ &nbsp; Chaos Engineering</button>
+                <button class="nav-item" data-page="monitoring">◷ &nbsp; Monitoring</button>
+                <button class="nav-item" data-page="replication">▤ &nbsp; Data Replication</button>
+                <button class="nav-item" data-page="results">▥ &nbsp; Test Results</button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <span class="status-dot"></span>
+                <span>Local Simulation Environment</span>
+            </div>
+        </aside>
+
+        <main class="main">
+            <header class="topbar">
+                <div>
+                    <div class="breadcrumb">CLOUDGUARDIANS / CONTROL CENTER</div>
+                    <h1 id="page-title">Overview Dashboard</h1>
+                    <p id="page-subtitle">Real-time disaster recovery infrastructure monitoring</p>
+                </div>
+                <div class="top-actions">
+                    <span class="environment">LOCAL ENVIRONMENT</span>
+                    <span id="connection-badge" class="connection">Connecting...</span>
+                </div>
+            </header>
+
+            <section id="overview" class="page active">
+                <div class="section-heading">
+                    <div>
+                        <h2>Infrastructure Overview</h2>
+                        <p>Live data from your CloudGuardians API gateway</p>
+                    </div>
+                    <button class="primary-btn" onclick="refreshDashboard()">↻ Refresh Status</button>
+                </div>
+
+                <div class="metrics">
+                    <div class="metric-card">
+                        <div class="metric-label">ACTIVE REGION</div>
+                        <div class="metric-value" id="active-region">Loading...</div>
+                        <div class="metric-note">Current request routing target</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">PRIMARY FAILURES</div>
+                        <div class="metric-value" id="failures">—</div>
+                        <div class="metric-note">Recorded failure events</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">PRIMARY RECOVERIES</div>
+                        <div class="metric-value" id="recoveries">—</div>
+                        <div class="metric-note">Recorded recovery events</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">FAILOVER DETECTION</div>
+                        <div class="metric-value" id="rto">—</div>
+                        <div class="metric-note">Last reported RTO field</div>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="panel">
+                        <div class="panel-heading">
+                            <h3>Region Architecture</h3>
+                            <span class="panel-tag">LIVE STATUS</span>
+                        </div>
+                        <div class="region-card">
+                            <div class="region-icon">01</div>
+                            <div class="region-info">
+                                <strong>Region 1 — Primary</strong>
+                                <small>Flask Application + PostgreSQL</small>
+                            </div>
+                            <span class="region-badge" id="primary-role">Checking</span>
+                        </div>
+                        <div class="connector-line">↕ &nbsp; APPLICATION REPLICATION / FAILOVER</div>
+                        <div class="region-card">
+                            <div class="region-icon">02</div>
+                            <div class="region-info">
+                                <strong>Region 2 — Secondary</strong>
+                                <small>Flask Application + PostgreSQL</small>
+                            </div>
+                            <span class="region-badge" id="secondary-role">Checking</span>
+                        </div>
+                    </div>
+
+                    <div class="panel">
+                        <div class="panel-heading">
+                            <h3>System Activity</h3>
+                            <span class="panel-tag">GATEWAY EVENT</span>
+                        </div>
+                        <div class="activity">
+                            <div class="activity-icon">✓</div>
+                            <div>
+                                <strong id="last-event">Waiting for gateway...</strong>
+                                <p>Most recent event reported by the backend</p>
+                            </div>
+                        </div>
+                        <div class="detail-row">
+                            <span>Gateway endpoint</span>
+                            <code>localhost:8080</code>
+                        </div>
+                        <div class="detail-row">
+                            <span>Recovery detection</span>
+                            <strong id="recovery-time">Not measured</strong>
+                        </div>
+                        <div class="detail-row">
+                            <span>Data source</span>
+                            <strong>Live Flask API</strong>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="api" class="page">
+                <h2>API Explorer</h2>
+                <p class="page-description">Execute requests against the running CloudGuardians gateway.</p>
+                <div class="panel">
+                    <h3>Available Endpoints</h3>
+                    <div class="endpoint">
+                        <span class="method get">GET</span>
+                        <code>/status</code>
+                        <button class="primary-btn" onclick="testAPI('/api/status')">Send Request</button>
+                    </div>
+                    <div class="endpoint">
+                        <span class="method get">GET</span>
+                        <code>/data</code>
+                        <button class="primary-btn" onclick="testAPI('/api/data')">Send Request</button>
+                    </div>
+                    <div class="endpoint">
+                        <span class="method post">POST</span>
+                        <code>/write</code>
+                        <input id="write-message" placeholder="Enter a message to store">
+                        <button class="primary-btn" onclick="writeData()">Write Data</button>
+                    </div>
+                    <h3>API Response</h3>
+                    <pre id="api-response">Select an endpoint to view its response.</pre>
+                </div>
+            </section>
+
+            <section id="chaos" class="page">
+                <h2>Chaos Engineering</h2>
+                <p class="page-description">Controlled failure simulations for testing disaster recovery behavior.</p>
+                <div class="panel">
+                    <h3>Primary Region Failure Simulation</h3>
+                    <p>Stopping the primary container should trigger automatic failover through the existing gateway.</p>
+                    <p class="notice">Experiment controls will be connected to a local, restricted backend in the next stage. No containers will be stopped from this page yet.</p>
+                </div>
+            </section>
+
+            <section id="monitoring" class="page">
+                <h2>Monitoring</h2>
+                <p class="page-description">Observe gateway state and recovery events.</p>
+                <div class="panel">
+                    <h3>Latest Gateway Status</h3>
+                    <pre id="monitoring-response">Waiting for data...</pre>
+                </div>
+            </section>
+
+            <section id="replication" class="page">
+                <h2>Data Replication</h2>
+                <p class="page-description">Inspect records returned by the active gateway.</p>
+                <div class="panel">
+                    <button class="primary-btn" onclick="loadReplication()">Load Database Records</button>
+                    <pre id="replication-response">Click the button to load records.</pre>
+                    <p class="notice">Cross-region record verification will be added separately.</p>
+                </div>
+            </section>
+
+            <section id="results" class="page">
+                <h2>Test Results</h2>
+                <p class="page-description">Recovery metrics from the running gateway.</p>
+                <div class="panel">
+                    <div class="detail-row"><span>Reported RTO</span><strong id="result-rto">Not measured</strong></div>
+                    <div class="detail-row"><span>Recovery detection</span><strong id="result-recovery">Not measured</strong></div>
+                    <div class="detail-row"><span>Primary failures</span><strong id="result-failures">0</strong></div>
+                    <div class="detail-row"><span>Primary recoveries</span><strong id="result-recoveries">0</strong></div>
+                    <p class="notice">Historical RPO tests and CSV experiment logs will be integrated next.</p>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="/app.js"></script>
+</body>
+</html>

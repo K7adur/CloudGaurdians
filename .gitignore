@@ -3,6 +3,8 @@
 *.tfstate
 *.tfstate.backup
 .terraform/
+
 config.bat
-node_modules
+node_modules/
 monitoring/logs/
+__pycache__/
