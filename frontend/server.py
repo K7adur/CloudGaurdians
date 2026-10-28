@@ -1,5 +1,5 @@
+
 import subprocess
-import threading
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
@@ -35,25 +35,32 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 with urlopen(GATEWAY + endpoint, timeout=5) as response:
                     data = json.loads(response.read().decode("utf-8"))
                     self.send_json(data)
-            except (URLError, HTTPError, TimeoutError) as error:
-                self.send_json(
-                    {"error": "Gateway unavailable", "details": str(error)},
-                    502
-                )
+
+            except (URLError, TimeoutError) as error:
+                self.send_json({
+                    "error": "Gateway unavailable",
+                    "details": str(error)
+                }, 502)
+
             except (ValueError, UnicodeError) as error:
                 self.send_json({"error": str(error)}, 502)
+
             return
 
         super().do_GET()
-    
+
     def run_chaos_action(self):
         if self.client_address[0] not in ("127.0.0.1", "::1"):
             self.send_json({"error": "Local access only"}, 403)
             return
 
         actions = {
-            "/api/chaos/fail-primary": ["docker", "stop", "region1-primary"],
-            "/api/chaos/restore-primary": ["docker", "start", "region1-primary"]
+            "/api/chaos/fail-primary": [
+                "docker", "stop", "region1-primary"
+            ],
+            "/api/chaos/restore-primary": [
+                "docker", "start", "region1-primary"
+            ]
         }
 
         command = actions.get(self.path)
@@ -75,21 +82,25 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 "success": True,
                 "action": self.path,
                 "container": result.stdout.strip(),
-                "message": "Docker command completed. Wait for the gateway to detect the change."
+                "message": (
+                    "Docker command completed. Wait for the "
+                    "gateway to detect the change."
+                )
             })
 
         except subprocess.TimeoutExpired:
             self.send_json({"error": "Docker command timed out"}, 504)
+
         except (subprocess.CalledProcessError, OSError) as error:
             self.send_json({"error": str(error)}, 500)
 
-        def do_POST(self):
-            if self.path in (
-                "/api/chaos/fail-primary",
-                "/api/chaos/restore-primary"
+    def do_POST(self):
+        if self.path in (
+            "/api/chaos/fail-primary",
+            "/api/chaos/restore-primary"
         ):
-                self.run_chaos_action()
-                return
+            self.run_chaos_action()
+            return
 
         if self.path != "/api/write":
             self.send_json({"error": "Unknown endpoint"}, 404)
@@ -97,21 +108,29 @@ class DashboardHandler(SimpleHTTPRequestHandler):
 
         try:
             length = int(self.headers.get("Content-Length", "0"))
+
+            if length <= 0:
+                self.send_json({"error": "Request body is required"}, 400)
+                return
+
             if length > 10000:
                 self.send_json({"error": "Request too large"}, 413)
                 return
 
             payload = json.loads(self.rfile.read(length))
+
             if not isinstance(payload, dict):
                 self.send_json({"error": "Expected JSON object"}, 400)
                 return
 
             message = payload.get("message")
+
             if not isinstance(message, str) or not message.strip():
                 self.send_json({"error": "Message is required"}, 400)
                 return
 
             body = json.dumps({"message": message}).encode("utf-8")
+
             request = Request(
                 GATEWAY + "/write",
                 data=body,
@@ -124,12 +143,13 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 self.send_json(result, response.status)
 
         except HTTPError as error:
-            self.send_json(
-                {"error": error.read().decode("utf-8", errors="replace")},
-                error.code
-            )
+            self.send_json({
+                "error": error.read().decode("utf-8", errors="replace")
+            }, error.code)
+
         except (URLError, TimeoutError) as error:
             self.send_json({"error": str(error)}, 502)
+
         except (ValueError, UnicodeError) as error:
             self.send_json({"error": str(error)}, 400)
 
