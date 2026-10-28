@@ -1,4 +1,5 @@
 
+import utils.session
 from flask import Flask, jsonify, request
 import os
 import psycopg2

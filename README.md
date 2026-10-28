@@ -1,158 +1,250 @@
-# CloudGuardians
+CloudGuardians
+Multi-Region Disaster Recovery and Failover Simulation
+CloudGuardians is a Docker-based project that demonstrates core disaster recovery concepts using two application regions, separate PostgreSQL databases, a gateway/router, application-level data replication, and a web dashboard.
 
-## Cloud-Based Disaster Recovery and Automated Failover Simulator
+The project simulates a primary-region failure and recovery so that failover behavior can be observed and measured in a local development environment.
+Deployment note: This version is a local Docker simulation. It does not deploy resources to AWS or provide real geographic multi-region cloud infrastructure.
 
-### 1. Project Overview
-
-CloudGuardians is a Docker-based disaster recovery simulation demonstrating health monitoring, automatic failover, failback, and application-level database replication between two application regions.
-
-The project uses two Flask applications, two PostgreSQL databases, and a gateway that routes requests to the active region.
-
-**Note:** This is a local Docker simulation. The two regions are not geographically separate cloud deployments.
-
-### 2. Architecture
-
-- **Region 1:** Primary Flask application and PostgreSQL database.
-- **Region 2:** Secondary Flask application and PostgreSQL database.
-- **Gateway:** Routes requests and monitors primary-region health.
-- **Docker Compose:** Runs the applications, databases, networks, and gateway.
-
-### 3. Technologies Used
-
-- Python and Flask
-- PostgreSQL
-- Docker and Docker Compose
+Table of Contents
+- Objectives
+- Architecture
+- Technology Stack
+- Project Structure
+- Prerequisites
+- Run the Project
+- Access the Services
+- Verify Health and Status
+- Test Data Replication
+- Run a Failover Test
+- Frontend Dashboard
 - Terraform
-- PowerShell
+- Monitoring and Logs
+- Troubleshooting
+- Current Limitations
+Objectives
+- Run primary and secondary application instances in Docker containers.
+- Monitor application health through a gateway/router.
+- Route application activity to the active region.
+- Demonstrate failover when the primary application becomes unavailable.
+- Demonstrate recovery when the primary application returns.
+- Replicate application records between the primary and secondary databases.
+- Provide a dashboard for viewing status and records and submitting writes.
+- Record failover test results for review and evaluation.
+Architecture
+                         User / Browser
+                               |
+                 +---------------------------+
+                 | Frontend Dashboard        |
+                 | http://localhost:3000     |
+                 +---------------------------+
+                               |
+                     Frontend API proxy
+                               |
+                 +---------------------------+
+                 | Gateway / Router          |
+                 | http://localhost:8080     |
+                 +---------------------------+
+                       /               \\
+                      /                 \\
+         +--------------------+  +--------------------+
+         | Primary App        |  | Secondary App      |
+         | localhost:5001     |  | localhost:5002     |
+         +--------------------+  +--------------------+
+                    |                     |
+         +--------------------+  +--------------------+
+         | Primary PostgreSQL |  | Secondary          |
+         | region1-db         |  | PostgreSQL         |
+         +--------------------+  +--------------------+
+                    \\                     /
+                     Application-level replication
+The router checks application health and uses a failure/recovery threshold to decide when to switch regions. The configured behavior uses three consecutive failed health checks to trigger failover and three consecutive successful checks to trigger recovery/failback.
 
-### 4. Main Features
+Data replication is implemented at the application level through the write/replication endpoints. It is not native PostgreSQL streaming replication.
+Technology Stack
+- Python and Flask — application and gateway services.
+- Docker and Docker Compose — local containerized environment.
+- PostgreSQL — separate databases for the primary and secondary applications.
+- HTML, CSS, and JavaScript — frontend dashboard.
+- Python HTTP server — serves the frontend and proxies dashboard API requests to the gateway.
+- Terraform — local orchestration through the project configuration; it does not create cloud infrastructure in this version.
+Project Structure
+The main project layout is expected to resemble:
+CloudGuardians/
+├── docker-compose.yml
+├── frontend/
+│   ├── server.py
+│   └── static/
+│       ├── index.html
+│       ├── app.js
+│       └── style.css
+├── region1/
+│   └── app/
+│       └── app.py
+├── region2/
+│   └── app/
+│       └── app.py
+├── router/
+│   └── app.py
+├── monitoring/
+│   ├── failover_test.py
+│   ├── rpo_test.py
+│   ├── monitor.py
+│   └── logs/
+├── terraform/
+│   └── main.tf
+└── README.md
+File names may differ if the project has been updated. Check the actual folders in your working copy before relying on this illustrative tree.
+Prerequisites
+Install and verify the following:
+- Docker Desktop with the Docker engine running.
+- Docker Compose (included with current Docker Desktop installations).
+- Python 3.
+- Terraform, if you intend to use the Terraform configuration.
+Check the installations:
+docker --version
+docker compose version
+python --version
+terraform version
+Terraform is optional if you start the project directly with Docker Compose.
+Run the Project
+Open PowerShell and change to the project directory. Update the path if your project is stored elsewhere.
+cd "C:\Users\JK\OneDrive\Documents\Keerthana\Projects\CloudGuardians"
+Start the Docker services:
+docker compose up --build -d
+Check container status:
+docker compose ps
+The project has used these container names:
+- region1-primary
+- region2-secondary
+- cloudguardians-gateway
+- region1-db
+- region2-db
+If your Compose configuration uses different names, use the names shown by docker compose ps.
+Start the frontend
+Open a separate PowerShell window in the project directory and run:
+python .\frontend\server.py
+Keep this terminal open while using the dashboard. Open:
+- Frontend dashboard: http://localhost:3000
+- Gateway status: http://localhost:8080/status
+- Primary health: http://localhost:5001/health
+- Secondary health: http://localhost:5002/health
+The dashboard server binds to 127.0.0.1, so it is intended for local access on the same computer.
+Access the Services
+Service	Local URL	Purpose
+Frontend dashboard	http://localhost:3000	Web interface
+Gateway status	http://localhost:8080/status	Active region and failover status
+Primary application health	http://localhost:5001/health	Primary app health check
+Secondary application health	http://localhost:5002/health	Secondary app health check
 
-1. Health checks for both application regions.
-2. Automatic failover when the primary region becomes unavailable.
-3. Automatic failback after primary-region recovery.
-4. Gateway status monitoring.
-5. Application-level replication of writes when both regions are reachable.
-6. Separate PostgreSQL databases with persistent Docker volumes.
 
-### 5. Prerequisites
-
-- Docker Desktop
-- Docker Compose
-- Terraform (for the Terraform workflow)
-- Windows PowerShell
-
-### 6. Run the Project
-
-Open PowerShell in the project directory.
-
-Build and start the containers:
-
-```powershell
-docker compose -f Docker-compose.yml up --build -d
-```
-
-Check running containers:
-
-```powershell
-docker ps
-```
-
-Stop the containers:
-
-```powershell
-docker compose -f Docker-compose.yml down
-```
-
-### 7. Endpoints
-
-| Endpoint | Purpose |
-|---|---|
-| `http://localhost:8080/` | Gateway |
-| `http://localhost:8080/status` | Active region and monitoring status |
-| `http://localhost:8080/write` | Submit a write through the gateway |
-| `http://localhost:5001/health` | Primary health check |
-| `http://localhost:5002/health` | Secondary health check |
-| `http://localhost:5001/data` | Primary database records |
-| `http://localhost:5002/data` | Secondary database records |
-
-### 8. Testing
-
-**Health checks**
-
-```powershell
+The application endpoints are exposed by the local Docker setup. The gateway also provides the application API routes used by the dashboard.
+Verify Health and Status
+Run these commands in PowerShell:
 Invoke-RestMethod http://localhost:5001/health
 Invoke-RestMethod http://localhost:5002/health
-```
-
-Both endpoints should report healthy when their applications and databases are available.
-
-**Failover test**
-
-```powershell
-docker stop region1-primary
-Start-Sleep -Seconds 10
 Invoke-RestMethod http://localhost:8080/status | Format-List
-```
+Both application health endpoints should report healthy when both applications and their databases are available. The gateway status should identify the currently active region.
 
-The gateway should switch to the secondary region after detecting primary failure.
+Check the dashboard's proxied status endpoint:
+Invoke-RestMethod http://localhost:3000/api/status
+Test Data Replication
+Write through the gateway
+This test creates a database record:
+$body = @{ message = "CloudGuardians replication test" } | ConvertTo-Json
 
-**Failback test**
-
-```powershell
-docker start region1-primary
-Start-Sleep -Seconds 10
-Invoke-RestMethod http://localhost:8080/status | Format-List
-```
-
-The gateway should return to the primary region after successful recovery checks.
-
-**Replication test**
-
-```powershell
 Invoke-RestMethod `
-  -Uri http://localhost:8080/write `
-  -Method POST `
+  -Uri "http://localhost:8080/write" `
+  -Method Post `
   -ContentType "application/json" `
-  -Body '{"message":"Replication verification"}' |
-  ConvertTo-Json -Depth 5
-```
+  -Body $body
+A successful response should include fields such as active_region, replicated_to, and saved_record. When the primary is active and replication succeeds, the response should indicate replication to the secondary.
+Read records through the gateway
+Invoke-RestMethod http://localhost:8080/data
+Test the frontend API
+The dashboard server proxies the following endpoints:
+Invoke-RestMethod http://localhost:3000/api/data
+To submit a write through the frontend API:
+$body = @{ message = "Dashboard write test" } | ConvertTo-Json
 
-When both regions are reachable, the expected result is `saved_and_replicated`.
+Invoke-RestMethod `
+  -Uri "http://localhost:3000/api/write" `
+  -Method Post `
+  -ContentType "application/json" `
+  -Body $body
+These write commands create real records in the local test databases. Use clearly labelled test messages.
 
-Verify records in both databases:
+Replication note: The databases use independent sequences, so the same replicated message may have different record IDs in each database. Compare the message and other relevant fields rather than assuming the IDs must match.
+Run a Failover Test
+Warning: This test intentionally stops the primary application container. Run it only when you are ready to interrupt the primary service.
 
-```powershell
-Invoke-RestMethod http://localhost:5001/data
-Invoke-RestMethod http://localhost:5002/data
-```
+From the project root:
+python monitoring/failover_test.py
+The script stops the primary application, waits for secondary takeover, reports a measured recovery time, and restarts the primary application. The exact result depends on the environment and timing.
 
-### 9. Observed Results
+After the test, verify recovery:
+Invoke-RestMethod http://localhost:5001/health
+Invoke-RestMethod http://localhost:8080/status | Format-List
+The primary health endpoint should return to a healthy state after the container restarts. The gateway may need a short period to detect recovery and switch back.
+Understanding the recovery measurements
+The failover script's elapsed recovery time and the gateway's rto_seconds field are separate measurements. Record each with its source and definition; do not treat them as interchangeable without checking the implementation.
+Frontend Dashboard
+The frontend is made up of:
+- frontend/static/index.html — page structure and dashboard controls.
+- frontend/static/style.css — dashboard styling.
+- frontend/static/app.js — client-side interactions and API requests.
+- frontend/server.py — local HTTP server and API proxy.
+The frontend API supports status and data reads and a write endpoint. The server also defines local chaos actions for stopping and starting the primary application:
+- POST /api/chaos/fail-primary
+- POST /api/chaos/restore-primary
+These actions run Docker commands on the same machine. They require Docker to be installed and accessible to the user running the frontend server. They are destructive to the primary service while the failure test is active, so use them carefully.
 
-The project has previously demonstrated:
+The existence of an endpoint does not by itself prove that every dashboard button is connected correctly. Verify the actual browser controls before claiming that all frontend features are complete.
+Terraform
+The Terraform configuration in this project is intended for local orchestration through Docker Compose. It does not provision AWS resources or establish real geographically separated cloud regions.
 
-- Successful health checks for both application regions.
-- Gateway failover from primary to secondary.
-- Gateway failback after primary recovery.
-- Application-level replication of writes to both databases when both regions are reachable.
-
-An earlier end-to-end failover test measured approximately 25.96 seconds. This is an observed local test result, not a production recovery-time guarantee.
-
-### 10. Limitations
-
-- The project runs locally in Docker rather than in geographically separate cloud regions.
-- Native PostgreSQL streaming replication is not configured.
-- Replication may fail if the other region is unavailable during a write.
-- Missed records are not automatically reconciled after recovery.
-- The prototype does not provide production-grade security or cloud monitoring.
-
-### 11. Future Improvements
-
-- Provision real cloud infrastructure using Terraform.
-- Deploy applications across separate cloud regions.
-- Implement replication retries and reconciliation.
-- Add monitoring, alerting, authentication, and secure configuration.
-- Measure recovery time and data loss under repeatable failure scenarios.
-
-### 12. Conclusion
-
-CloudGuardians demonstrates disaster recovery concepts through health monitoring, automated failover, failback, and application-level replication in a local Docker environment. It provides a foundation for future deployment on cloud infrastructure.
+Review terraform/main.tf before using Terraform. Only run Terraform commands if Terraform is installed and you understand the local actions defined in the configuration.
+Monitoring and Logs
+The monitoring/ directory contains test and monitoring scripts, including:
+- failover_test.py — automated primary-failure and recovery test.
+- rpo_test.py — recovery-point/data-loss test, if included in the current project version.
+- monitor.py — monitoring utility, if included in the current project version.
+- logs/ — generated test output, such as failover_results.csv.
+Run scripts from the project root so their relative paths resolve correctly. Keep the original CSV results as evidence for project evaluation.
+Troubleshooting
+Docker services are not running
+docker compose ps
+docker compose logs --tail 100
+If the Docker engine is stopped, start Docker Desktop first.
+A local port is unavailable
+Check whether another process is using the required port. Stop only the conflicting process after identifying it.
+Gateway status or API requests fail
+Check the gateway logs and both application health endpoints:
+docker logs cloudguardians-gateway --tail 100
+Invoke-RestMethod http://localhost:5001/health
+Invoke-RestMethod http://localhost:5002/health
+If container names differ, use the names shown by docker compose ps.
+Dashboard does not open
+Make sure the frontend server is running in a separate terminal:
+python .\frontend\server.py
+Then open http://localhost:3000. Keep the terminal open and inspect its output for errors.
+Frontend writes or chaos controls fail
+First test the gateway API directly. If the gateway works but the frontend API fails, check frontend/server.py. If the frontend API works but a browser button does not, inspect the corresponding handler in frontend/static/app.js and the button in frontend/static/index.html.
+Primary does not recover immediately
+Allow the router's configured recovery checks to complete, then inspect:
+Invoke-RestMethod http://localhost:8080/status | Format-List
+Current Limitations
+- The project is a local simulation, not a production cloud deployment.
+- The two regions are represented by local Docker services; they are not geographically isolated.
+- Data replication is application-level and best-effort, rather than native PostgreSQL replication. The current design does not provide automatic retry and reconciliation for every failed replication attempt.
+- Failover and recovery timings vary with health-check intervals, thresholds, Docker startup time, and test conditions.
+- Local chaos actions require Docker access from the computer running the frontend server.
+- Production-grade authentication, authorization, secrets management, high availability of the gateway, durable replication guarantees, and cross-region networking are outside the verified scope of this version.
+Project Status
+The following behaviors have been verified during local testing:
+- Primary and secondary application health endpoints respond successfully when the services are healthy.
+- The gateway reports the active region and recovery status.
+- Records can be written through the gateway and the frontend API.
+- A successful write response has reported replication to the secondary database.
+- The automated failover script has completed successfully and restarted the primary application.
+Keep the latest terminal outputs and test logs with the project evidence. Re-run the tests after code changes and update this section if the implementation or results change.
+CloudGuardians — a local disaster recovery simulation for demonstrating health monitoring, failover, recovery, and application-level data replication.
